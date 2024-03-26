@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AsyncDownload", "AsyncDownload\AsyncDownload.csproj", "{02155BCA-5031-4E8E-A518-2DE6684F3DFA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AsyncDownload.Test", "AsyncDownload.Test\AsyncDownload.Test.csproj", "{4BADEDAD-2707-4FB0-BA4F-B6452067D542}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{02155BCA-5031-4E8E-A518-2DE6684F3DFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02155BCA-5031-4E8E-A518-2DE6684F3DFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02155BCA-5031-4E8E-A518-2DE6684F3DFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02155BCA-5031-4E8E-A518-2DE6684F3DFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BADEDAD-2707-4FB0-BA4F-B6452067D542}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BADEDAD-2707-4FB0-BA4F-B6452067D542}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BADEDAD-2707-4FB0-BA4F-B6452067D542}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BADEDAD-2707-4FB0-BA4F-B6452067D542}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {13CF3C39-2A10-4694-B60B-2492191E3B89}
+	EndGlobalSection
+EndGlobal
