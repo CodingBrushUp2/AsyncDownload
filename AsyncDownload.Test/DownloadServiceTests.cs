@@ -1,30 +1,26 @@
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using AsyncDownload.Interfaces;
 using AsyncDownload.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using Xunit;
+using System.Net;
+using System.Text;
 
 namespace AsyncDownload.Test;
 
 public class DownloadServiceTests
 {
-    private readonly Mock<IFileService> fileServiceMock = new();
-    private readonly Mock<IHttpClientFactory> httpClientFactoryMock = new();
-    private readonly Mock<ILogger<DownloadService>> loggerMock = new();
-    private DownloadService downloadService;
+    private readonly Mock<IFileService> _fileServiceMock = new();
+    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
+    private readonly Mock<ILogger<DownloadService>> _loggerMock = new();
+    private readonly DownloadService _downloadService;
 
-    private readonly List<string> urls = new()
-    {
-        "https://google.com",
-        "https://dddddddsssds.com",
-        "https://linkedin.com"
-    };
+    private readonly List<string> _urls = new()
+        {
+            "https://google.com",
+            "https://dddddddsssds.com",
+            "https://linkedin.com"
+        };
 
     public DownloadServiceTests()
     {
@@ -52,35 +48,41 @@ public class DownloadServiceTests
             .Verifiable();
 
         var client = new HttpClient(mockHandler.Object) { BaseAddress = new Uri("http://test.com") };
-        httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
 
-        downloadService = new DownloadService(httpClientFactoryMock.Object, fileServiceMock.Object, loggerMock.Object);
+        _downloadService = new DownloadService(_httpClientFactoryMock.Object, _fileServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]
     public async Task DownloadFileAsync_ShouldDownloadFile_WhenUrlIsInvalid()
     {
+        // Arrange
+        var cancellationToken = new CancellationToken();
+
         // Act
-        await downloadService.CheckAndDownloadUrlsAsync(urls);
+        await _downloadService.CheckAndDownloadUrlsAsync(_urls, cancellationToken);
 
         // Assert
-        fileServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(3));
+        _fileServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken), Times.Exactly(3));
     }
 
     [Fact]
     public async Task LogsError_WhenHttpRequestFails()
     {
+        // Arrange
+        var cancellationToken = new CancellationToken();
+
         // Act
-        await downloadService.CheckAndDownloadUrlsAsync(new[] { "https://dddddddsssds.com" });
+        await _downloadService.CheckAndDownloadUrlsAsync(new[] { "https://dddddddsssds.com" }, cancellationToken);
 
         // Assert
-        loggerMock.Verify(
+        _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Successfully downloaded and saved")),
                 null,
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Exactly(1));
     }
 
@@ -88,28 +90,31 @@ public class DownloadServiceTests
     public async Task LogsError_WhenFileWriteFails()
     {
         // Arrange
-        fileServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()))
+        var cancellationToken = new CancellationToken();
+        _fileServiceMock.Setup(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
                        .ThrowsAsync(new Exception("File write failed"));
 
         // Act
-        await downloadService.CheckAndDownloadUrlsAsync(urls);
+        await _downloadService.CheckAndDownloadUrlsAsync(_urls, cancellationToken);
 
         // Assert
-        loggerMock.Verify(
+        _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => 
-                            v.ToString().Contains("Error checking or downloading URL") && 
-                            v.ToString().Contains("Error: File write failed")),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString().Contains("Error checking or downloading URL") &&
+                    v.ToString().Contains("Error: File write failed")),
                 null,
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Exactly(3));
     }
 
     [Fact]
     public async Task LogsError_WhenHttpRequestThrowsException()
     {
+        // Arrange
+        var cancellationToken = new CancellationToken();
         var mockHandler = new Mock<HttpMessageHandler>();
         mockHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -119,30 +124,32 @@ public class DownloadServiceTests
             .ThrowsAsync(new HttpRequestException("Network failure"));
 
         var client = new HttpClient(mockHandler.Object);
-        httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
 
         // Act
-        await downloadService.CheckAndDownloadUrlsAsync(urls);
+        await _downloadService.CheckAndDownloadUrlsAsync(_urls, cancellationToken);
 
         // Assert
-        loggerMock.Verify(
+        _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Network failure")),
                 It.IsAny<HttpRequestException>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Exactly(urls.Count)); // Assuming you want to log an error for each URL in the event of a network failure
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(_urls.Count)); // Assuming you want to log an error for each URL in the event of a network failure
     }
 
     [Fact]
     public async Task DoesNotAttemptDownload_WhenUrlListIsEmpty()
     {
+        // Arrange
+        var cancellationToken = new CancellationToken();
+
         // Act
-        await downloadService.CheckAndDownloadUrlsAsync(new List<string>());
+        await _downloadService.CheckAndDownloadUrlsAsync(new List<string>(), cancellationToken);
 
         // Assert
-        fileServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _fileServiceMock.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken), Times.Never);
     }
-
 }

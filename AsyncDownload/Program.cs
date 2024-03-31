@@ -16,8 +16,9 @@ var urls = new List<string>
             "https://dddddddsssds.com",
             "https://linkedin.com",
         };
+var cancellationToken = new CancellationToken();
 
-await downloadService.CheckAndDownloadUrlsAsync(urls);
+await downloadService.CheckAndDownloadUrlsAsync(urls, cancellationToken);
 
 Console.WriteLine("Download process completed.");
 
