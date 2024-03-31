@@ -2,5 +2,5 @@
 
 public interface IFileService
 {
-    Task WriteAllTextAsync(string path, string contents);
+    Task WriteAllTextAsync(string path, string contents, CancellationToken cancellationToken);
 }

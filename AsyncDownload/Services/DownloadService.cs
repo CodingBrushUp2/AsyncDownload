@@ -19,37 +19,37 @@ public class DownloadService
         Directory.CreateDirectory(_outputDirectory);
     }
 
-    public async Task CheckAndDownloadUrlsAsync(IEnumerable<string> urls)
+    public async Task CheckAndDownloadUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(urls);
         var client = _httpClientFactory.CreateClient("DownloadClient");
 
         _logger.LogInformation("Starting to check and download URLs...");
 
-        var tasks = urls.Select(url => CheckAndDownloadUrlAsync(client, url)).ToList();
+        var tasks = urls.Select(url => CheckAndDownloadUrlAsync(client, url, cancellationToken)).ToList();
         await Task.WhenAll(tasks);
 
         _logger.LogInformation("Completed checking and downloading URLs.");
     }
 
-    private async Task CheckAndDownloadUrlAsync(HttpClient client, string url)
+    private async Task CheckAndDownloadUrlAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
-        await _semaphoreSlim.WaitAsync();
+        await _semaphoreSlim.WaitAsync(cancellationToken);
         try
         {
             _logger.LogInformation($"Checking URL: {url}");
-            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation($"URL exists and is being downloaded: {url}");
-                await DownloadWebsiteAsync(url, response); // Use the same response to download content
+                await DownloadWebsiteAsync(url, response, cancellationToken);
             }
             else
             {
                 _logger.LogWarning($"URL check failed: {url} with status code {response.StatusCode}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError($"Error checking or downloading URL: {url}, Error: {ex.Message}");
         }
@@ -59,11 +59,11 @@ public class DownloadService
         }
     }
 
-    private async Task DownloadWebsiteAsync(string url, HttpResponseMessage response)
+    private async Task DownloadWebsiteAsync(string url, HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var filePath = Path.Combine(_outputDirectory, GetSafeFileName(url));
-        await _fileService.WriteAllTextAsync(filePath, content);
+        await _fileService.WriteAllTextAsync(filePath, content, cancellationToken);
         _logger.LogInformation($"Successfully downloaded and saved: {url}");
     }
 
