@@ -63,9 +63,17 @@ public class DownloadService
 
     private async Task DownloadWebsiteAsync(string url, HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var filePath = Path.Combine(_outputDirectory, GetSafeFileName(url));
-        await _fileService.WriteAllTextAsync(filePath, content, cancellationToken);
+
+        //var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        //await _fileService.WriteAllTextAsync(filePath, content, cancellationToken);
+        //or using FileStream
+        using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
+        using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await stream.CopyToAsync(fileStream, cancellationToken);
+            _logger.LogInformation($"Successfully downloaded and saved: {url}");
+        }
         _logger.LogInformation($"Successfully downloaded and saved: {url}");
     }
 
